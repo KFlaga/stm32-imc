@@ -47,8 +47,8 @@ template<typename Uart, typename Crc, std::uint8_t maxMessageSize, bool isMaster
 class InterMcuCommunicationModule
 {
 private:
-	using ReceivedMessage = typename ImcReceiver<Uart, maxMessageSize>::MessageBuffer;
-	using ImcControl = std::conditional_t<isMaster, ImcMasterControl<Uart, maxMessageSize>, ImcSlaveControl<Uart, maxMessageSize>>;
+    using ReceivedMessage = typename ImcReceiver<Uart, maxMessageSize>::MessageBuffer;
+    using ImcControl = std::conditional_t<isMaster, ImcMasterControl<Uart, maxMessageSize>, ImcSlaveControl<Uart, maxMessageSize>>;
 
 public:
     using MessageRecipientFunc = bool(*)( // should return true if message is supported and has valid contents
@@ -62,11 +62,11 @@ public:
 
     InterMcuCommunicationModule(Uart& uart_, Crc& crc_, ImcSettings& settings_) :
         uart{uart_},
-		crc{crc_},
-		receiver{uart},
-		sender{uart},
-		control{uart, receiver, sender, settings_},
-		settings{settings_}
+        crc{crc_},
+        receiver{uart},
+        sender{uart},
+        control{uart, receiver, sender, settings_},
+        settings{settings_}
     {
     }
 
@@ -80,17 +80,17 @@ public:
     /// Updates control module and dispatches received messages.
     void update(std::uint32_t loopUs)
     {
-    	control.updateTimers(loopUs);
+        control.updateTimers(loopUs);
 
-    	while(handleReceivedMessage()) {}
+        while(handleReceivedMessage()) {}
 
-    	if(receiver.hasError())
-    	{
-    		responseWithReceiveError();
-    		receiver.clearError();
-    	}
+        if(receiver.hasError())
+        {
+            responseWithReceiveError();
+            receiver.clearError();
+        }
 
-    	control.updateStatus([this](auto& m) { return sendControlMessage(m); });
+        control.updateStatus([this](auto& m) { return sendControlMessage(m); });
     }
 
     /// Tries to send a message to other MCU.
@@ -111,41 +111,41 @@ public:
     /// Returns true if communication with other device was established.
     bool hasCommunicationEstablished() const
     {
-    	return control.hasCommunicationEstablished();
+        return control.hasCommunicationEstablished();
     }
 
     /// Returns true if module currently have capacity to enqueue message for sending.
     bool canEnqueueMessage()
     {
-    	return sender.queueCapacity() > 1;
+        return sender.queueCapacity() > 1;
     }
 
 private:
     template<typename MessageT>
     bool sendUserMessage(MessageT& msg)
     {
-    	if(hasCommunicationEstablished() && sender.queueCapacity() > 1)
-    	{
-    		// Always reserve one slot for control messages
+        if(hasCommunicationEstablished() && sender.queueCapacity() > 1)
+        {
+            // Always reserve one slot for control messages
             return sendMessageImpl(msg);
-    	}
-    	else
-    	{
-    		return false;
-    	}
+        }
+        else
+        {
+            return false;
+        }
     }
 
     template<typename MessageT>
     bool sendControlMessage(MessageT& msg)
     {
-    	if(sender.queueCapacity() > 0)
-    	{
+        if(sender.queueCapacity() > 0)
+        {
             return sendMessageImpl(msg);
-    	}
-    	else
-    	{
-    		return false;
-    	}
+        }
+        else
+        {
+            return false;
+        }
     }
 
     template<typename MessageT>
@@ -160,68 +160,68 @@ private:
 
         if(sender.sendMessage(msg))
         {
-        	control.onMessageSent();
-    		return true;
+            control.onMessageSent();
+            return true;
         }
         else
         {
-        	return false;
+            return false;
         }
     }
 
     std::uint32_t computeCrc(std::uint8_t* message, std::uint8_t headerAndContentsSize)
     {
-    	crc.reset();
-    	crc.add(makeSpan(message, headerAndContentsSize));
+        crc.reset();
+        crc.add(makeSpan(message, headerAndContentsSize));
         return crc.get();
     }
 
     bool handleReceivedMessage()
     {
-    	auto maybeMessage = receiver.getNextMessage();
-    	if(maybeMessage.has_value())
-    	{
-    		ReceivedMessage& message = *maybeMessage.value();
-    		handleReceivedMessage(message);
-    	}
-    	return maybeMessage.has_value();
+        auto maybeMessage = receiver.getNextMessage();
+        if(maybeMessage.has_value())
+        {
+            ReceivedMessage& message = *maybeMessage.value();
+            handleReceivedMessage(message);
+        }
+        return maybeMessage.has_value();
     }
 
     void handleReceivedMessage(ReceivedMessage& message)
     {
-    	if(checkReceivedMessageIsValid(message))
-    	{
-    		if(dispatchMessage(message))
-    		{
-    			constexpr std::uint8_t sequenceOffset = 2;
-    			std::uint16_t sequence = *reinterpret_cast<std::uint16_t*>(message.data() + sequenceOffset);
-    			lastReceivedSequence = sequence;
-    			control.onMessageReceived();
-    		}
-    		else
-    		{
-    			responseWithReceiveError();
-    		}
-    	}
-		else
-		{
-			responseWithReceiveError();
-		}
+        if(checkReceivedMessageIsValid(message))
+        {
+            if(dispatchMessage(message))
+            {
+                constexpr std::uint8_t sequenceOffset = 2;
+                std::uint16_t sequence = *reinterpret_cast<std::uint16_t*>(message.data() + sequenceOffset);
+                lastReceivedSequence = sequence;
+                control.onMessageReceived();
+            }
+            else
+            {
+                responseWithReceiveError();
+            }
+        }
+        else
+        {
+            responseWithReceiveError();
+        }
     }
 
     bool checkReceivedMessageIsValid(ReceivedMessage& message)
     {
-    	if(message.size() < 8)
-    	{
-    		return false;
-    	}
+        if(message.size() < 8)
+        {
+            return false;
+        }
 
         std::uint8_t dataSize = message[1];
         std::uint8_t dataSizeWithPadding = dataSize > 4 ? dataSize + 3 - ((dataSize + 3) % 4) : 4;
 
         if(dataSizeWithPadding != message.size() - 8)
         {
-    		return false;
+            return false;
         }
 
         std::uint8_t crcOffset = message.size() - 4;
@@ -229,7 +229,7 @@ private:
 
         if(crc != computeCrc(message.data(), 4 + dataSize))
         {
-        	return false;
+            return false;
         }
 
         return true;
@@ -237,24 +237,24 @@ private:
 
     bool dispatchMessage(ReceivedMessage& message)
     {
-		std::uint8_t id = message[0];
-		std::uint8_t dataSize = message[1];
-		constexpr std::uint8_t sequenceOffset = 2;
-		std::uint16_t sequence = *reinterpret_cast<std::uint16_t*>(message.data() + sequenceOffset);
-		constexpr std::uint8_t dataOffset = 4;
-		std::uint8_t* data = message.data() + dataOffset;
+        std::uint8_t id = message[0];
+        std::uint8_t dataSize = message[1];
+        constexpr std::uint8_t sequenceOffset = 2;
+        std::uint16_t sequence = *reinterpret_cast<std::uint16_t*>(message.data() + sequenceOffset);
+        constexpr std::uint8_t dataOffset = 4;
+        std::uint8_t* data = message.data() + dataOffset;
 
-		std::uint8_t rIdx = ImcProtocol::getRecipientNumber(id);
-		if(rIdx == 0)
-		{
-			return control.dispatchControlMessage([this](auto& m) { return sendControlMessage(m); }, id, sequence, dataSize, data);
-		}
-		else
-		{
-			auto& recipient = recipients[rIdx];
-			return recipient(*this, id, dataSize, data);
-		}
-		return false;
+        std::uint8_t rIdx = ImcProtocol::getRecipientNumber(id);
+        if(rIdx == 0)
+        {
+            return control.dispatchControlMessage([this](auto& m) { return sendControlMessage(m); }, id, sequence, dataSize, data);
+        }
+        else
+        {
+            auto& recipient = recipients[rIdx];
+            return recipient(*this, id, dataSize, data);
+        }
+        return false;
     }
 
     void responseWithReceiveError()

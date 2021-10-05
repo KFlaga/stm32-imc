@@ -13,10 +13,10 @@ template<typename T, std::uint16_t maxSize>
 class UnorderedRingBuffer
 {
 public:
-	/// Creates UnorderedRingBuffer and initializes it's storage with default constructed objects.
+    /// Creates UnorderedRingBuffer and initializes it's storage with default constructed objects.
     UnorderedRingBuffer() : data{} {};
 
-	/// Creates UnorderedRingBuffer and initializes it's storage with copy of given object.
+    /// Creates UnorderedRingBuffer and initializes it's storage with copy of given object.
     UnorderedRingBuffer(const T& t)
     {
         std::fill(begin(), end(), t);

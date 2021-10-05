@@ -16,24 +16,24 @@ constexpr std::uint16_t timPeriod = 0xFFFF;
 
 struct Event
 {
-	StmInterruptTimer::Callback c{};
-	std::uint32_t startCNT = 0;
+    StmInterruptTimer::Callback c{};
+    std::uint32_t startCNT = 0;
 };
 
 std::array<Event, StmInterruptTimer::channelsCount> events{};
 
 inline std::uint32_t getUs(std::uint32_t startCNT)
 {
-	std::uint32_t cnt = TIM3->CNT;
-	return cnt > startCNT ? (cnt - startCNT) * timStepUs : (timPeriod - startCNT + cnt) * timStepUs;
+    std::uint32_t cnt = TIM3->CNT;
+    return cnt > startCNT ? (cnt - startCNT) * timStepUs : (timPeriod - startCNT + cnt) * timStepUs;
 }
 
 inline std::uint16_t getCNT(std::uint32_t us)
 {
-	std::uint16_t timSteps = ((us + timStepUs - 1) / timStepUs);
-	std::uint16_t cnt = TIM3->CNT;
-	std::uint16_t rem = timPeriod - cnt;
-	return rem >= timSteps ? cnt + timSteps : timSteps - rem;
+    std::uint16_t timSteps = ((us + timStepUs - 1) / timStepUs);
+    std::uint16_t cnt = TIM3->CNT;
+    std::uint16_t rem = timPeriod - cnt;
+    return rem >= timSteps ? cnt + timSteps : timSteps - rem;
 }
 
 inline void updateCCRx(int channel, std::uint16_t flag, std::uint16_t itFlag)
@@ -42,7 +42,7 @@ inline void updateCCRx(int channel, std::uint16_t flag, std::uint16_t itFlag)
     {
         TIM_ITConfig(TIM3, itFlag, DISABLE);
 
-		events[channel].c.callAndReset(getUs(events[channel].startCNT));
+        events[channel].c.callAndReset(getUs(events[channel].startCNT));
 
         TIM_ClearITPendingBit(TIM3, flag);
     }
@@ -93,27 +93,27 @@ bool StmInterruptTimer::_scheduleInterrupt(std::uint8_t channel, std::uint32_t u
     case 0:
         TIM_SetCompare1(TIM3, getCNT(us));
         TIM_ITConfig(TIM3, TIM_IT_CC1, ENABLE);
-    	break;
+        break;
     case 1:
         TIM_SetCompare2(TIM3, getCNT(us));
         TIM_ITConfig(TIM3, TIM_IT_CC2, ENABLE);
-    	break;
+        break;
     case 2:
         TIM_SetCompare3(TIM3, getCNT(us));
         TIM_ITConfig(TIM3, TIM_IT_CC3, ENABLE);
-    	break;
+        break;
     case 3:
         TIM_SetCompare4(TIM3, getCNT(us));
         TIM_ITConfig(TIM3, TIM_IT_CC4, ENABLE);
-    	break;
+        break;
     default:
-    	return false;
+        return false;
     }
 
-	std::uint16_t cnt = TIM3->CNT;
-	events[channel].c = info;
-	events[channel].startCNT = cnt;
-	return true;
+    std::uint16_t cnt = TIM3->CNT;
+    events[channel].c = info;
+    events[channel].startCNT = cnt;
+    return true;
 }
 
 }

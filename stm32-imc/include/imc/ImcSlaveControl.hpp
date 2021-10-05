@@ -27,57 +27,57 @@ template<typename Uart, std::uint8_t maxMessageSize>
 class ImcSlaveControl
 {
 public:
-	using ReceivedMessage = typename ImcReceiver<Uart, maxMessageSize>::MessageBuffer;
+    using ReceivedMessage = typename ImcReceiver<Uart, maxMessageSize>::MessageBuffer;
 
-	ImcSlaveControl(
-		Uart& uart_,
-		ImcReceiver<Uart, maxMessageSize>& receiver_,
-		ImcSender<Uart, maxMessageSize>& sender_,
-		ImcSettings& settings_
-	) :
+    ImcSlaveControl(
+        Uart& uart_,
+        ImcReceiver<Uart, maxMessageSize>& receiver_,
+        ImcSender<Uart, maxMessageSize>& sender_,
+        ImcSettings& settings_
+    ) :
         uart{uart_},
-		receiver{receiver_},
-		sender{sender_},
-		settings{settings_},
-		notificationTimer{settings.slaveHandshakeIntervalUs}
-	{
-	}
+        receiver{receiver_},
+        sender{sender_},
+        settings{settings_},
+        notificationTimer{settings.slaveHandshakeIntervalUs}
+    {
+    }
 
     void updateTimers(std::uint32_t loopUs)
     {
-    	notificationTimer += loopUs;
-		keepAliveAckTimeout += loopUs;
+        notificationTimer += loopUs;
+        keepAliveAckTimeout += loopUs;
     }
 
     template<typename SendMessage>
     void updateStatus(SendMessage sendMessage)
     {
-    	checkKeepAliveAckTimeout();
-    	sendNotification(sendMessage);
+        checkKeepAliveAckTimeout();
+        sendNotification(sendMessage);
     }
 
     bool hasCommunicationEstablished() const
     {
-    	return communicationIsEstablished;
+        return communicationIsEstablished;
     }
 
     template<typename SendMessage>
     bool dispatchControlMessage(SendMessage, std::uint8_t id, std::uint16_t, std::uint8_t size, std::uint8_t* data)
     {
-    	if(id == ImcProtocol::Acknowledge::myId)
-    	{
-    		return handleAck(data, size);
-    	}
-    	else if(id == ImcProtocol::ReceiveError::myId)
-    	{
-    		return handleError();
-    	}
-    	return false;
+        if(id == ImcProtocol::Acknowledge::myId)
+        {
+            return handleAck(data, size);
+        }
+        else if(id == ImcProtocol::ReceiveError::myId)
+        {
+            return handleError();
+        }
+        return false;
     }
 
     void onMessageSent()
     {
-    	notificationTimer = 0;
+        notificationTimer = 0;
     }
 
     void onMessageReceived()
@@ -88,66 +88,66 @@ private:
     template<typename SendMessage>
     void sendNotification(SendMessage sendMessage)
     {
-		if(!communicationIsEstablished)
-		{
-			sendNotificationMessage<ImcProtocol::Handshake>(sendMessage, settings.slaveHandshakeIntervalUs);
-		}
-		else
-		{
-			sendNotificationMessage<ImcProtocol::KeepAlive>(sendMessage, settings.slaveKeepAliveIntervalUs);
-		}
+        if(!communicationIsEstablished)
+        {
+            sendNotificationMessage<ImcProtocol::Handshake>(sendMessage, settings.slaveHandshakeIntervalUs);
+        }
+        else
+        {
+            sendNotificationMessage<ImcProtocol::KeepAlive>(sendMessage, settings.slaveKeepAliveIntervalUs);
+        }
     }
 
     template<typename Message, typename SendMessage>
     void sendNotificationMessage(SendMessage sendMessage, std::uint32_t interval)
     {
-    	if(notificationTimer >= interval)
-    	{
-    		Message notification{};
-    		sendMessage(notification);
-    	}
+        if(notificationTimer >= interval)
+        {
+            Message notification{};
+            sendMessage(notification);
+        }
     }
 
     void checkKeepAliveAckTimeout()
     {
-    	if(communicationIsEstablished)
-    	{
-			if(keepAliveAckTimeout >= settings.slaveAckTimeoutUs)
-			{
-				communicationIsEstablished = false;
-			}
-    	}
+        if(communicationIsEstablished)
+        {
+            if(keepAliveAckTimeout >= settings.slaveAckTimeoutUs)
+            {
+                communicationIsEstablished = false;
+            }
+        }
     }
 
     bool handleAck(std::uint8_t* data, std::uint8_t size)
     {
-    	if(size != sizeof(ImcProtocol::AckMessageContents))
-    	{
-    		return false;
-    	}
+        if(size != sizeof(ImcProtocol::AckMessageContents))
+        {
+            return false;
+        }
 
-    	ImcProtocol::AckMessageContents& ack = *reinterpret_cast<ImcProtocol::AckMessageContents*>(data);
-    	if(!communicationIsEstablished)
-    	{
-    		if(ack.ackId == ImcProtocol::Handshake::myId)
-    		{
-    			communicationIsEstablished = true;
-    			keepAliveAckTimeout = 0;
-    		}
-    	}
-    	else
-    	{
-    		if(ack.ackId == ImcProtocol::KeepAlive::myId)
-    		{
-    			keepAliveAckTimeout = 0;
-    		}
-    	}
-    	return true;
+        ImcProtocol::AckMessageContents& ack = *reinterpret_cast<ImcProtocol::AckMessageContents*>(data);
+        if(!communicationIsEstablished)
+        {
+            if(ack.ackId == ImcProtocol::Handshake::myId)
+            {
+                communicationIsEstablished = true;
+                keepAliveAckTimeout = 0;
+            }
+        }
+        else
+        {
+            if(ack.ackId == ImcProtocol::KeepAlive::myId)
+            {
+                keepAliveAckTimeout = 0;
+            }
+        }
+        return true;
     }
 
     bool handleError()
     {
-    	return true;
+        return true;
     }
 
     Uart& uart;

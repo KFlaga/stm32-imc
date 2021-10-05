@@ -119,9 +119,9 @@ template<bool value, typename Func, typename... Args>
 constexpr void eval_if(Func&& f, [[maybe_unused]] Args&&... args)
 {
     if constexpr(value)
-	{
-    	f(std::forward<Args>(args)...);
-	}
+    {
+        f(std::forward<Args>(args)...);
+    }
     else
     {
     }
@@ -133,12 +133,12 @@ template<bool value, typename If, typename Else, typename... Args>
 constexpr void eval_if_else(If&& f, Else&& g, Args&&... args)
 {
     if constexpr(value)
-	{
-    	f(std::forward<Args>(args)...);
-	}
+    {
+        f(std::forward<Args>(args)...);
+    }
     else
     {
-    	g(std::forward<Args>(args)...);
+        g(std::forward<Args>(args)...);
     }
 }
 
@@ -162,10 +162,10 @@ constexpr void eval_if_is_else(U&& t, If&& f, Else&& g)
 template<typename U, typename... T>
 constexpr bool contains()
 {
-	// U is in T we got sth like
-	// integer_sequence<bool, false, false, true, false>
-	// integer_sequence<bool, false, false, false, true>
-	// So sequences are not same. Otherwise both are full of false.
+    // U is in T we got sth like
+    // integer_sequence<bool, false, false, true, false>
+    // integer_sequence<bool, false, false, false, true>
+    // So sequences are not same. Otherwise both are full of false.
     return not std::is_same<
         std::integer_sequence<bool, false, std::is_same<U, T>::value...>,
         std::integer_sequence<bool, std::is_same<U, T>::value..., false>

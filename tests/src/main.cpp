@@ -2,5 +2,5 @@
 
 int main(void)
 {
-	return test::TestRunner::instance().run() ? 0 : 1;
+    return test::TestRunner::instance().run() ? 0 : 1;
 }

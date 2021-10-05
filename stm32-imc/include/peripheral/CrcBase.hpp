@@ -19,29 +19,29 @@ template<typename Derived>
 class CrcBase
 {
 public:
-	/// Creates CRC unit interface with reset state
-	CrcBase() {}
+    /// Creates CRC unit interface with reset state
+    CrcBase() {}
 
-	/// Creates CRC unit interface and adds buffer to it
-	/// \param buffer Span of unsigned integer type.
-	template<typename T>
-	CrcBase(Span<T> buffer)
-	{
-		add(buffer);
-	}
+    /// Creates CRC unit interface and adds buffer to it
+    /// \param buffer Span of unsigned integer type.
+    template<typename T>
+    CrcBase(Span<T> buffer)
+    {
+        add(buffer);
+    }
 
-	/// Adds next number to be CRCed.
+    /// Adds next number to be CRCed.
     void add(std::uint32_t x)
     {
         static_cast<Derived*>(this)->_add(x);
     }
 
     /// Adds all elements of given buffer. Each element is casted to std::uint32_t and CRCed.
-	/// \param buffer Span of unsigned integer type.
-	template<typename T>
+    /// \param buffer Span of unsigned integer type.
+    template<typename T>
     void add(Span<T> buffer)
     {
-		static_assert(std::is_integral<T>::value && std::is_unsigned<T>::value, "CrcBase::add requires buffer of integral unsigned type");
+        static_assert(std::is_integral<T>::value && std::is_unsigned<T>::value, "CrcBase::add requires buffer of integral unsigned type");
         for(std::uint8_t x: buffer)
         {
             add(static_cast<std::uint32_t>(x));

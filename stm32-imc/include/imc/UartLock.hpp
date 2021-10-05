@@ -8,19 +8,19 @@ template<typename Uart>
 class UartSendLock
 {
 public:
-	UartSendLock(Uart& u) :
-		uart{u}
-	{
-		u.suspendSend();
-	}
+    UartSendLock(Uart& u) :
+        uart{u}
+    {
+        u.suspendSend();
+    }
 
-	~UartSendLock()
-	{
-		uart.resumeSend();
-	}
+    ~UartSendLock()
+    {
+        uart.resumeSend();
+    }
 
 private:
-	Uart& uart;
+    Uart& uart;
 };
 
 /// Suspends Uart receiving for lifetime of this object.
@@ -28,18 +28,18 @@ template<typename Uart>
 class UartReceiveLock
 {
 public:
-	UartReceiveLock(Uart& u) :
-		uart{u}
-	{
-		u.suspendReceive();
-	}
+    UartReceiveLock(Uart& u) :
+        uart{u}
+    {
+        u.suspendReceive();
+    }
 
-	~UartReceiveLock()
-	{
-		uart.resumeReceive();
-	}
+    ~UartReceiveLock()
+    {
+        uart.resumeReceive();
+    }
 
 private:
-	Uart& uart;
+    Uart& uart;
 };
 }

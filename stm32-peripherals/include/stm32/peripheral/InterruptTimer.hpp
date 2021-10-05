@@ -7,8 +7,8 @@ namespace DynaSoft
 class StmInterruptTimer : public InterruptTimerBase<StmInterruptTimer, 4>
 {
 public:
-	StmInterruptTimer();
+    StmInterruptTimer();
 
-	bool _scheduleInterrupt(std::uint8_t channel, std::uint32_t us, Callback cb);
+    bool _scheduleInterrupt(std::uint8_t channel, std::uint32_t us, Callback cb);
 };
 }

@@ -15,65 +15,65 @@ template<typename Uart, std::uint8_t maxMessageSize>
 class ImcSender
 {
 public:
-	using MessageBuffer = DynamicArray<std::uint8_t, maxMessageSize>;
+    using MessageBuffer = DynamicArray<std::uint8_t, maxMessageSize>;
 
-	static_assert(Uart::sendBufferSize >= maxMessageSize, "Uart sendBufferSize is too small");
+    static_assert(Uart::sendBufferSize >= maxMessageSize, "Uart sendBufferSize is too small");
 
-	ImcSender(Uart& uart_) :
-		uart{uart_},
-		messageBuffer{}
-	{
+    ImcSender(Uart& uart_) :
+        uart{uart_},
+        messageBuffer{}
+    {
         uart.setDataSentCallback({[](CallbackContext ctx)
         {
             static_cast<ImcSender*>(ctx)->onDataSent();
         }, this});
-	}
+    }
 
-	/// Enqueues given message for sending - up to two messages may be queued
-	/// Returns true if there was space in queue
+    /// Enqueues given message for sending - up to two messages may be queued
+    /// Returns true if there was space in queue
     template<typename MessageT>
     bool sendMessage(MessageT& msg)
     {
-		std::uint8_t* data = reinterpret_cast<std::uint8_t*>(&msg);
-    	return sendMessage(data, sizeof(MessageT));
+        std::uint8_t* data = reinterpret_cast<std::uint8_t*>(&msg);
+        return sendMessage(data, sizeof(MessageT));
     }
 
     bool sendMessage(std::uint8_t* data, std::uint8_t size)
     {
-		UartSendLock lock{uart};
-    	if(uart.send(data, size))
-    	{
-    		capacity = 1;
-        	return true;
-    	}
-    	else if(capacity > 0)
+        UartSendLock lock{uart};
+        if(uart.send(data, size))
         {
-        	messageBuffer.assign(data, data + size);
-        	hasMessageInBuffer = true;;
-    		capacity = 0;
-        	return true;
+            capacity = 1;
+            return true;
         }
-    	else
-    	{
-        	return false;
-    	}
+        else if(capacity > 0)
+        {
+            messageBuffer.assign(data, data + size);
+            hasMessageInBuffer = true;;
+            capacity = 0;
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 
     std::uint8_t queueCapacity()
     {
-    	return capacity;
+        return capacity;
     }
 
 private:
     void onDataSent()
     {
-    	uart.generateIdleLine();
-    	if(hasMessageInBuffer)
-    	{
-    		std::uint8_t* data = reinterpret_cast<std::uint8_t*>(messageBuffer.data());
-	        uart.send(data, messageBuffer.size());
-	        hasMessageInBuffer = false;
-    	}
+        uart.generateIdleLine();
+        if(hasMessageInBuffer)
+        {
+            std::uint8_t* data = reinterpret_cast<std::uint8_t*>(messageBuffer.data());
+            uart.send(data, messageBuffer.size());
+            hasMessageInBuffer = false;
+        }
         capacity += 1;
     }
 

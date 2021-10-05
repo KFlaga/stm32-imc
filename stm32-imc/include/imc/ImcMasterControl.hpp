@@ -24,56 +24,56 @@ template<typename Uart, std::uint8_t maxMessageSize>
 class ImcMasterControl
 {
 public:
-	using ReceivedMessage = typename ImcReceiver<Uart, maxMessageSize>::MessageBuffer;
+    using ReceivedMessage = typename ImcReceiver<Uart, maxMessageSize>::MessageBuffer;
 
-	ImcMasterControl(
-		Uart& uart_,
-		ImcReceiver<Uart, maxMessageSize>& receiver_,
-		ImcSender<Uart, maxMessageSize>& sender_,
-		ImcSettings& settings_
-	) :
+    ImcMasterControl(
+        Uart& uart_,
+        ImcReceiver<Uart, maxMessageSize>& receiver_,
+        ImcSender<Uart, maxMessageSize>& sender_,
+        ImcSettings& settings_
+    ) :
         uart{uart_},
-		receiver{receiver_},
-		sender{sender_},
-		settings{settings_}
-	{
-	}
+        receiver{receiver_},
+        sender{sender_},
+        settings{settings_}
+    {
+    }
 
     void updateTimers(std::uint32_t loopUs)
     {
-    	communicationTimeoutTimer += loopUs;
+        communicationTimeoutTimer += loopUs;
     }
 
     template<typename SendMessage>
     void updateStatus(SendMessage)
     {
-    	if(communicationTimeoutTimer >= settings.masterCommunicationTimeoutUs)
-    	{
-    		communicationIsEstablished = false;
-    	}
+        if(communicationTimeoutTimer >= settings.masterCommunicationTimeoutUs)
+        {
+            communicationIsEstablished = false;
+        }
     }
 
     bool hasCommunicationEstablished() const
     {
-    	return communicationIsEstablished;
+        return communicationIsEstablished;
     }
 
     template<typename SendMessage>
     bool dispatchControlMessage(SendMessage sendMessage, std::uint8_t id, std::uint16_t sequence, std::uint8_t size, std::uint8_t* data)
     {
-    	if(id == ImcProtocol::Handshake::myId)
-    	{
-    		return handleHandshake(sendMessage, data, size, sequence);
-    	}
-    	else if(id == ImcProtocol::KeepAlive::myId)
-    	{
-    		return handleKeepAlive(sendMessage, data, size, sequence);
-    	}
-    	else if(id == ImcProtocol::ReceiveError::myId)
-    	{
-    		return handleError();
-    	}
-    	return false;
+        if(id == ImcProtocol::Handshake::myId)
+        {
+            return handleHandshake(sendMessage, data, size, sequence);
+        }
+        else if(id == ImcProtocol::KeepAlive::myId)
+        {
+            return handleKeepAlive(sendMessage, data, size, sequence);
+        }
+        else if(id == ImcProtocol::ReceiveError::myId)
+        {
+            return handleError();
+        }
+        return false;
     }
 
     void onMessageSent()
@@ -82,50 +82,50 @@ public:
 
     void onMessageReceived()
     {
-    	communicationTimeoutTimer = 0;
+        communicationTimeoutTimer = 0;
     }
 
 private:
     template<typename SendMessage>
     bool handleHandshake(SendMessage sendMessage, std::uint8_t*, std::uint8_t size, std::uint16_t sequence)
     {
-    	if(size != ImcProtocol::Handshake::dataSize)
-    	{
-    		return false;
-    	}
+        if(size != ImcProtocol::Handshake::dataSize)
+        {
+            return false;
+        }
 
         ImcProtocol::Acknowledge ack{};
         ack.data.ackId = ImcProtocol::Handshake::myId;
         ack.data.ackSequence = sequence;
-    	sendMessage(ack);
+        sendMessage(ack);
 
-		communicationIsEstablished = true;
+        communicationIsEstablished = true;
 
-    	return true;
+        return true;
     }
 
     template<typename SendMessage>
     bool handleKeepAlive(SendMessage sendMessage, std::uint8_t*, std::uint8_t size, std::uint16_t sequence)
     {
-    	if(size != ImcProtocol::KeepAlive::dataSize)
-    	{
-    		return false;
-    	}
+        if(size != ImcProtocol::KeepAlive::dataSize)
+        {
+            return false;
+        }
 
-    	if(communicationIsEstablished)
-    	{
+        if(communicationIsEstablished)
+        {
             ImcProtocol::Acknowledge ack{};
             ack.data.ackId = ImcProtocol::KeepAlive::myId;
             ack.data.ackSequence = sequence;
-        	sendMessage(ack);
-    	}
+            sendMessage(ack);
+        }
 
-    	return true;
+        return true;
     }
 
     bool handleError()
     {
-    	return true;
+        return true;
     }
 
     Uart& uart;

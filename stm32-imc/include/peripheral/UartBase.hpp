@@ -25,9 +25,9 @@ public:
     static constexpr std::uint8_t sendBufferSize = sendBufferSize_;
 
     UartBase(InterruptTimer& irqTimer_, std::uint32_t checkForIdleTimeUs_, std::uint32_t generateIdleTimeUs_) :
-    	irqTimer{irqTimer_},
-		checkForIdleTimeUs{checkForIdleTimeUs_},
-		generateIdleTimeUs{generateIdleTimeUs_}
+        irqTimer{irqTimer_},
+        checkForIdleTimeUs{checkForIdleTimeUs_},
+        generateIdleTimeUs{generateIdleTimeUs_}
     {
     }
 
@@ -55,15 +55,15 @@ public:
     /// After whole data is transmitted callback registered in setDataSentCallback() is called.
     bool send(std::uint8_t* data, std::uint8_t size)
     {
-    	if(size > 0 && size <= sendBufferSize && !isTransmiting)
+        if(size > 0 && size <= sendBufferSize && !isTransmiting)
         {
-    		isTransmiting = true;
-    		sendQueue.assign(data, data + size);
-    		sendQueueIndex = 1;
+            isTransmiting = true;
+            sendQueue.assign(data, data + size);
+            sendQueueIndex = 1;
             sendByte(data[0]);
             return true;
         }
-    	return false;
+        return false;
     }
 
     /// Returns last received byte.
@@ -77,16 +77,16 @@ public:
     /// IDLE indicates end of message for receiver end.
     void generateIdleLine()
     {
-    	isGeneratingIdle = true;
-    	irqTimer.scheduleInterrupt(0, generateIdleTimeUs, {[](CallbackContext ctx, std::uint32_t)
-    	{
-    		UartBase& self = *static_cast<UartBase*>(ctx);
-    		self.isGeneratingIdle = false;
-			if(self.sendQueueIndex < self.sendQueue.size())
-			{
-				self.sendByte(self.sendQueue[self.sendQueueIndex++]);
-			}
-    	}, this});
+        isGeneratingIdle = true;
+        irqTimer.scheduleInterrupt(0, generateIdleTimeUs, {[](CallbackContext ctx, std::uint32_t)
+        {
+            UartBase& self = *static_cast<UartBase*>(ctx);
+            self.isGeneratingIdle = false;
+            if(self.sendQueueIndex < self.sendQueue.size())
+            {
+                self.sendByte(self.sendQueue[self.sendQueueIndex++]);
+            }
+        }, this});
     }
 
     /// Stops Uart transmit finish interrupt from firing.
@@ -155,27 +155,27 @@ protected:
     {
         if(!isGeneratingIdle)
         {
-			if(sendQueueIndex < sendQueue.size())
-			{
-				sendByte(sendQueue[sendQueueIndex++]);
-			}
-			else
-			{
-				isTransmiting = false;
-				onDataSent();
-			}
+            if(sendQueueIndex < sendQueue.size())
+            {
+                sendByte(sendQueue[sendQueueIndex++]);
+            }
+            else
+            {
+                isTransmiting = false;
+                onDataSent();
+            }
         }
     }
 
     void handleDataReceived()
     {
-    	lastReceived = receiveByte();
+        lastReceived = receiveByte();
 
         // Reset wait time for idle
         irqTimer.scheduleInterrupt(1, checkForIdleTimeUs, {[](CallbackContext ctx, std::uint32_t)
-		{
-    		static_cast<UartBase*>(ctx)->onIdleLineDetected();
-		}, this});
+        {
+            static_cast<UartBase*>(ctx)->onIdleLineDetected();
+        }, this});
 
         onDataReceived();
     }

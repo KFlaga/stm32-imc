@@ -50,13 +50,13 @@ using Message = MessageBase<MessageContents, std::integral_constant<std::uint8_t
 template<typename T>
 inline std::uint8_t* encode(T& message)
 {
-	return reinterpret_cast<std::uint8_t*>(&message);
+    return reinterpret_cast<std::uint8_t*>(&message);
 }
 
 template<typename T>
 inline T& decode(std::uint8_t* message)
 {
-	return *reinterpret_cast<T*>(message);
+    return *reinterpret_cast<T*>(message);
 }
 
 struct EmptyMessageContents
@@ -65,27 +65,27 @@ struct EmptyMessageContents
 
 struct AckMessageContents
 {
-	std::uint8_t ackId = 0;
-	std::uint8_t _ = 0;
+    std::uint8_t ackId = 0;
+    std::uint8_t _ = 0;
     std::uint16_t ackSequence = 0;
 
     AckMessageContents() = default;
 
     AckMessageContents(std::uint8_t ackId_, std::uint16_t ackSequence_) :
-    	ackId{ackId_},
-		ackSequence{ackSequence_}
+        ackId{ackId_},
+        ackSequence{ackSequence_}
     {}
 };
 
 struct ReceiveErrorContents
 {
-	std::uint16_t lastOkSequence = 0;
-	std::uint16_t _ = 0;
+    std::uint16_t lastOkSequence = 0;
+    std::uint16_t _ = 0;
 
-	ReceiveErrorContents() = default;
+    ReceiveErrorContents() = default;
 
-	ReceiveErrorContents(std::uint16_t lastOkSequence_) :
-		lastOkSequence{lastOkSequence_}
+    ReceiveErrorContents(std::uint16_t lastOkSequence_) :
+        lastOkSequence{lastOkSequence_}
     {}
 };
 

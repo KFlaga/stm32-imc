@@ -37,7 +37,7 @@ void uartIrqHandler(StmUart* uart)
 }
 
 StmUart::StmUart(StmGpio& gpio_, StmInterruptTimer& irqTimer_, const UartSettings& settings) :
-	Base{irqTimer_, settings.checkForIdleTimeUs, settings.generateIdleTimeUs},
+    Base{irqTimer_, settings.checkForIdleTimeUs, settings.generateIdleTimeUs},
     gpio{gpio_}
 {
     std::uint8_t irqn = 0;
@@ -115,7 +115,7 @@ void StmUart::_suspendSend()
 
 void StmUart::_resumeSend()
 {
-	// Interrupts for pending events will be called after this call
+    // Interrupts for pending events will be called after this call
     uart->CR1 |= USART_CR1_IDLEIE;
 }
 
@@ -126,7 +126,7 @@ void StmUart::_suspendReceive()
 
 void StmUart::_resumeReceive()
 {
-	// Interrupts for pending events will be called after this call
+    // Interrupts for pending events will be called after this call
     uart->CR1 |= USART_CR1_RXNEIE;
 }
 
@@ -186,20 +186,20 @@ void StmUart::handleReceiveOverrunError()
 
 void StmUart::handleReceiveNoiseError()
 {
-	 _receiveByte();
+     _receiveByte();
     onReceiveError(static_cast<std::uint8_t>(UartError::ReceiveNoise));
 }
 
 void StmUart::handleReceiveFrameError()
 {
     // Framing error - desynchronization or noise
-	 _receiveByte();
+     _receiveByte();
     onReceiveError(static_cast<std::uint8_t>(UartError::ReceiveFrameError));
 }
 
 void StmUart::handleReceiveParityError()
 {
-	 _receiveByte();
+     _receiveByte();
     onReceiveError(static_cast<std::uint8_t>(UartError::ReceiveParityError));
 }
 

@@ -44,7 +44,7 @@ public:
     /// Works like readUs() and reset() combined.
     std::uint32_t readUsAndReset(std::uint8_t channel)
     {
-    	 std::uint32_t us = static_cast<UsTimer*>(this)->_readUs(channel);
+         std::uint32_t us = static_cast<UsTimer*>(this)->_readUs(channel);
         static_cast<UsTimer*>(this)->_reset(channel);
         return us;
     }
