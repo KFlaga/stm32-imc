@@ -131,7 +131,7 @@ public:
         return 0;
     }
 
-    void run(const std::string& filter = "");
+    bool run(const std::string& filter = "");
 
 private:
     TestRunner() {}

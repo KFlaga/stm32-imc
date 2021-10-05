@@ -2,7 +2,5 @@
 
 int main(void)
 {
-//    test::TestRunner::instance().run();
-    test::TestRunner::instance().run("Imc");
-	return 0;
+	return test::TestRunner::instance().run() ? 0 : 1;
 }

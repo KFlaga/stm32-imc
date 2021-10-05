@@ -581,7 +581,7 @@ public:
 		bool dispatchedFlag = false;
 		imc.registerMessageRecipient(
 			testRecipent, {
-			[](void* ctx, auto& imc, std::uint8_t id, std::uint8_t size, std::uint8_t* data)
+			[](void* ctx, auto&, std::uint8_t, std::uint8_t, std::uint8_t*)
 			{
 				*reinterpret_cast<bool*>(ctx) = true;
 				return true;
@@ -919,7 +919,7 @@ ADD_TEST_F(ImcModuleTest, whenUserDataIsReceived_dispatchesToRecipient)
 
 	imc.registerMessageRecipient(
 		testRecipent, {
-		[](void* ctx, auto& imc, std::uint8_t id, std::uint8_t size, std::uint8_t* data)
+		[](void* ctx, auto&, std::uint8_t id, std::uint8_t size, std::uint8_t* data)
 		{
 			ASSERT_EQUAL(TestMessage::myId, id);
 			ASSERT_EQUAL(TestMessage::dataSize, size);
@@ -969,7 +969,7 @@ ADD_TEST_F(ImcModuleTest, whenRecipentReturnsFalse_sendsRecieveError)
 
 	bool dispatchedFlag = false;
 
-	imc.registerMessageRecipient(testRecipent, {[](void* ctx, auto& imc, std::uint8_t id, std::uint8_t size, std::uint8_t* data)
+	imc.registerMessageRecipient(testRecipent, {[](void* ctx, auto&, std::uint8_t, std::uint8_t, std::uint8_t*)
 	{
 		*reinterpret_cast<bool*>(ctx) = true;
 		return false;

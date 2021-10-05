@@ -1,4 +1,5 @@
-#include "framework.hpp"
+#include <tests/framework.hpp>
+#include <algorithm>
 
 namespace test
 {
@@ -8,7 +9,7 @@ Test dummyTest;
 Test* currentTest = &dummyTest;
 }
 
-void TestRunner::run(const std::string& filter)
+bool TestRunner::run(const std::string& filter)
 {
     for(auto& t: allTests)
     {
@@ -46,6 +47,7 @@ void TestRunner::run(const std::string& filter)
             std::cout << "[" << t.name << "] FAILED\n";
         }
     }
+    return std::any_of(allTests.begin(), allTests.end(), [](auto& t) { return !t.test->isSuccess(); });
 }
 
 }
