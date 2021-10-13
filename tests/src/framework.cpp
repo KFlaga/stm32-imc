@@ -1,5 +1,6 @@
 #include <tests/framework.hpp>
 #include <algorithm>
+#include <sstream>
 
 namespace test
 {
@@ -50,4 +51,11 @@ bool TestRunner::run(const std::string& filter)
     return std::any_of(allTests.begin(), allTests.end(), [](auto& t) { return !t.test->isSuccess(); });
 }
 
+}
+
+void dyna_assert_impl(bool cond, const char* expr, const char* file, int line)
+{
+    std::stringstream fileLine{};
+    fileLine << file << ":" << line;
+    ::test::detail::currentTest->assertEqual(true, cond, expr, fileLine.str());
 }

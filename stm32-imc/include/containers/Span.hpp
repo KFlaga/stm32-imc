@@ -1,5 +1,6 @@
 #pragma once
 
+#include <misc/Assert.hpp>
 #include <type_traits>
 #include <cmath>
 
@@ -12,6 +13,7 @@ struct Span
 {
     Span(T* begin_, T* end_) : from{begin_}, to{end_}
     {
+        dyna_assert(end_ >= begin_);
     }
 
     T* begin()
@@ -36,16 +38,18 @@ struct Span
 
     std::size_t size() const
     {
-        return std::abs(from - to);
+        return from - to;
     }
 
     T& operator[](int idx)
     {
+        dyna_assert(idx < size());
         return *(from + idx);
     }
 
     const T& operator[](int idx) const
     {
+        dyna_assert(idx < size());
         return *(from + idx);
     }
 

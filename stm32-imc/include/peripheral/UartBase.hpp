@@ -1,6 +1,5 @@
 #pragma once
 
-#include <containers/DynamicArray.hpp>
 #include <misc/Callback.hpp>
 #include <peripheral/InterruptTimerBase.hpp>
 #include <array>
@@ -11,10 +10,12 @@ namespace DynaSoft
 
 /// Base class for UART peripheral, that abstracts hardware and implements some of send/receive logic.
 ///
-/// \tparam Derived actual implementation of UART.
+/// \tparam Derived Actual implementation of UART.
+/// \tparam InterruptTimer Actual implementation of InterruptTimerBase.
+/// \tparam SendBuffer Container for sending buffer that provides vector-like interface. Should be able to contain largest sent message.
 ///
 /// Class Derived needs to add UartBase as friend.
-template<typename Derived, std::uint8_t sendBufferSize_, typename InterruptTimer>
+template<typename Derived, typename InterruptTimer, typename SendBuffer>
 class UartBase
 {
 public:
@@ -22,10 +23,25 @@ public:
     using RxCallback = Callback<void(CallbackContext)>;
     using TxCallback = Callback<void(CallbackContext)>;
     using ErrorCallback = Callback<void(CallbackContext, std::uint8_t)>;
-    static constexpr std::uint8_t sendBufferSize = sendBufferSize_;
 
-    UartBase(InterruptTimer& irqTimer_, std::uint32_t checkForIdleTimeUs_, std::uint32_t generateIdleTimeUs_) :
+    template<bool B = std::is_default_constructible_v<SendBuffer>, typename std::enable_if<B, int>::type = 0>
+    UartBase(InterruptTimer& irqTimer_,
+             std::uint32_t checkForIdleTimeUs_,
+             std::uint32_t generateIdleTimeUs_) :
         irqTimer{irqTimer_},
+        sendQueue{},
+        checkForIdleTimeUs{checkForIdleTimeUs_},
+        generateIdleTimeUs{generateIdleTimeUs_}
+    {
+    }
+
+    template<typename SendBufferInitializer>
+    UartBase(SendBufferInitializer&& initSendBuffer,
+             InterruptTimer& irqTimer_,
+             std::uint32_t checkForIdleTimeUs_,
+             std::uint32_t generateIdleTimeUs_) :
+        irqTimer{irqTimer_},
+        sendQueue{std::forward<SendBufferInitializer>(initSendBuffer)},
         checkForIdleTimeUs{checkForIdleTimeUs_},
         generateIdleTimeUs{generateIdleTimeUs_}
     {
@@ -55,7 +71,7 @@ public:
     /// After whole data is transmitted callback registered in setDataSentCallback() is called.
     bool send(std::uint8_t* data, std::uint8_t size)
     {
-        if(size > 0 && size <= sendBufferSize && !isTransmiting)
+        if(size > 0 && size <= sendQueue.max_size() && !isTransmiting)
         {
             isTransmiting = true;
             sendQueue.assign(data, data + size);
@@ -182,7 +198,7 @@ protected:
 
     InterruptTimer& irqTimer;
 
-    DynamicArray<std::uint8_t, sendBufferSize> sendQueue{};
+    SendBuffer sendQueue;
     std::uint8_t sendQueueIndex = 0;
 
     volatile bool isTransmiting = false;

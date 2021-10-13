@@ -1,6 +1,7 @@
 #pragma once
 
 #include <peripheral/UartBase.hpp>
+#include <containers/StaticVector.hpp>
 #include <stm32/peripheral/Gpio.hpp>
 #include <stm32/peripheral/InterruptTimer.hpp>
 #include <misc/Macro.hpp>
@@ -8,11 +9,6 @@
 #include <cstdint>
 
 #include "stm32f10x_usart.h"
-
-// Library should be built with UART_SEND_BUFFER_SIZE defined specific for given application
-#ifndef UART_SEND_BUFFER_SIZE
-#define UART_SEND_BUFFER_SIZE 32
-#endif
 
 namespace DynaSoft
 {
@@ -43,13 +39,16 @@ enum class UartError : std::uint8_t
     ReceiveParityError,
 };
 
-class StmUart : public UartBase<StmUart, UART_SEND_BUFFER_SIZE, StmInterruptTimer>
+/// Concrete implementation of UART interface that handles hardware
+class StmUart : public UartBase<StmUart, StmInterruptTimer, SpanVector<std::uint8_t>>
 {
 public:
-    StmUart(StmGpio& gpio, StmInterruptTimer& irqTimer, const UartSettings& settings);
+	/// Initializes UART hardware. It needs to be turned on later.
+	/// sendBuffer needs to point to persistent memory with size at least equal to largest sent message
+    StmUart(StmGpio& gpio, StmInterruptTimer& irqTimer, const UartSettings& settings, Span<std::uint8_t> sendBuffer);
 
 protected:
-    using Base = UartBase<StmUart, UART_SEND_BUFFER_SIZE, StmInterruptTimer>;
+    using Base = UartBase<StmUart, StmInterruptTimer, SpanVector<std::uint8_t>>;
     friend Base; // Needed for UartBase to access protected methods
 
     void _turnOn();

@@ -26,8 +26,6 @@ constexpr bool isImcMaster = false;
 constexpr bool isImcMaster = true;
 #endif
 
-using Imc = InterMcuCommunicationModule<StmUart, StmCrc, UART_SEND_BUFFER_SIZE, isImcMaster>;
-
 constexpr std::uint8_t mainRecipent = 1;
 
 struct MasterMessageData
@@ -49,6 +47,22 @@ using SlaveMessage = ImcProtocol::Message<SlaveMessageData, ImcProtocol::makeMes
 using MessageToSend = std::conditional_t<isImcMaster, MasterMessage, SlaveMessage>;
 using MessageToReceive = std::conditional_t<isImcMaster, SlaveMessage, MasterMessage>;
 
+constexpr std::uint8_t messageMaxSize = std::max({
+    sizeof(MasterMessage),
+    sizeof(SlaveMessage),
+	ImcProtocol::controlMessageMaxSize
+});
+
+using Imc = InterMcuCommunicationModule<StmUart, StmCrc, messageMaxSize, isImcMaster>;
+
+}
+
+void dyna_assert_impl(bool cond, const char* expr, const char* file, int line)
+{
+	(void)expr;
+	(void)cond;
+	(void)file;
+	(void)line;
 }
 
 int main(void)
@@ -68,7 +82,8 @@ int main(void)
         200, // check for idle us
         300 // generate idle us
     };
-    StmUart uart{gpio, irqTimer, uartSettings};
+    std::array<std::uint8_t, messageMaxSize> uartSendBuffer;
+    StmUart uart{gpio, irqTimer, uartSettings, makeSpan(uartSendBuffer.data(), uartSendBuffer.size())};
 
     InputPin buttonPin{ports::B, 5, InputType::DigitalNormalLow};
 

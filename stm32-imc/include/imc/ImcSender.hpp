@@ -3,7 +3,7 @@
 #include <imc/ImcProtocol.hpp>
 #include <imc/UartLock.hpp>
 #include <peripheral/UartBase.hpp>
-#include <containers/DynamicArray.hpp>
+#include "../containers/StaticVector.hpp"
 
 namespace DynaSoft
 {
@@ -15,9 +15,7 @@ template<typename Uart, std::uint8_t maxMessageSize>
 class ImcSender
 {
 public:
-    using MessageBuffer = DynamicArray<std::uint8_t, maxMessageSize>;
-
-    static_assert(Uart::sendBufferSize >= maxMessageSize, "Uart sendBufferSize is too small");
+    using MessageBuffer = StaticVector<std::uint8_t, maxMessageSize>;
 
     ImcSender(Uart& uart_) :
         uart{uart_},

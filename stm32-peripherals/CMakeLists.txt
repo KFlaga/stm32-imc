@@ -31,6 +31,3 @@ add_library(
 
 target_link_libraries(stm32-peripherals stm32-imc cmsis-stm32f10x)
 target_include_directories(stm32-peripherals PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
-
-ensure_is_specified(IMC_MAX_MESSAGE_SIZE "32")
-target_compile_definitions(stm32-peripherals PUBLIC UART_SEND_BUFFER_SIZE=${IMC_MAX_MESSAGE_SIZE})

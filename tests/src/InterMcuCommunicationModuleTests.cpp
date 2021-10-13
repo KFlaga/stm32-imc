@@ -54,7 +54,7 @@ struct TestInterruptTimer : public InterruptTimerBase<TestInterruptTimer, 4>
     std::array<Event, 4> events{};
 };
 
-struct TestUart : public UartBase<TestUart, sendBufferSize, TestInterruptTimer>
+struct TestUart : public UartBase<TestUart, TestInterruptTimer, StaticVector<std::uint8_t, sendBufferSize>>
 {
     TestUart(TestInterruptTimer& t) : UartBase(t, 100, 100) {}
 

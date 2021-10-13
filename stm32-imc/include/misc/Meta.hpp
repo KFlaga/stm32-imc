@@ -14,6 +14,9 @@ namespace mp
 {
 
 template<typename T>
+using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
+
+template<typename T>
 using get_type = typename T::type;
 
 template<typename From, template<typename...> class To>
@@ -86,6 +89,28 @@ constexpr bool is_valid_expression(...)
 {
     return false;
 }
+
+namespace detail
+{
+template<typename T, typename... Args>
+constexpr auto is_valid_initialization_helper(identity<T>, parameter_pack<Args...>) -> decltype(T{std::declval<Args>()...}, bool())
+{
+    return true;
+}
+
+constexpr bool is_valid_initialization_helper(...)
+{
+    return false;
+}
+}
+
+/// Returns true if T{Args...} is compilable.
+template<typename T, typename... Args>
+constexpr bool is_valid_initialization()
+{
+    return detail::is_valid_initialization_helper(identity<T>{}, parameter_pack<Args...>{});
+}
+
 
 /// Has static member value indicating whether type T is instantiation of template type Tmp.
 template<template<typename...> class Tmp, typename T>
@@ -195,7 +220,7 @@ struct pack_position_helper {};
 template<int N, typename T, typename F, typename... Fs>
 struct pack_position_helper<N, T, mp::parameter_pack<F, Fs...>>
 {
-    static constexpr int value = std::is_same<T, F>::value ?
+    static constexpr int value = std::is_same<remove_cvref_t<T>, remove_cvref_t<F>>::value ?
             N :
             pack_position_helper<N + 1, T, mp::parameter_pack<Fs...>>::value;
 };
@@ -213,6 +238,13 @@ template<typename T, typename Pack>
 struct pack_position
 {
     static constexpr int value = detail::pack_position_helper<0, T, Pack>::value;
+};
+
+/// Has static member value indicating whether T is the only type in Ts
+template<typename T, typename... Ts>
+struct is_only_type_in_pack
+{
+    static constexpr bool value = sizeof...(Ts) == 1 && pack_position<T, parameter_pack<Ts...>>::value == 0;
 };
 
 }

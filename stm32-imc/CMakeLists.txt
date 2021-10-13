@@ -10,7 +10,7 @@ target_sources(
     "${STM32_IMC_INCLUDE_DIR}/containers/UnorderedRingBuffer.hpp"
     "${STM32_IMC_INCLUDE_DIR}/containers/TripleBuffer.hpp"
     "${STM32_IMC_INCLUDE_DIR}/containers/Span.hpp"
-    "${STM32_IMC_INCLUDE_DIR}/containers/DynamicArray.hpp"
+    "${STM32_IMC_INCLUDE_DIR}/containers/StaticVector.hpp"
 
     "${STM32_IMC_INCLUDE_DIR}/imc/ImcMasterControl.hpp"
     "${STM32_IMC_INCLUDE_DIR}/imc/ImcProtocol.hpp"

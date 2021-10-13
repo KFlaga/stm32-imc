@@ -2,10 +2,10 @@
 
 #include <imc/ImcProtocol.hpp>
 #include <imc/UartLock.hpp>
-#include <containers/DynamicArray.hpp>
 #include <containers/TripleBuffer.hpp>
 #include <peripheral/UartBase.hpp>
 #include <optional>
+#include "../containers/StaticVector.hpp"
 
 namespace DynaSoft
 {
@@ -18,7 +18,7 @@ template<typename Uart, std::uint8_t bufferSize>
 class ImcReceiver
 {
 public:
-    using MessageBuffer = DynamicArray<std::uint8_t, bufferSize>;
+    using MessageBuffer = StaticVector<std::uint8_t, bufferSize>;
 
     /// Creates object using given uart implementation, which is used throughout entire lifespan of this object.
     /// Registers Uart callbacks related to receiving data.

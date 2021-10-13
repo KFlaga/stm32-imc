@@ -36,8 +36,8 @@ void uartIrqHandler(StmUart* uart)
     uart->handleUartIrq();
 }
 
-StmUart::StmUart(StmGpio& gpio_, StmInterruptTimer& irqTimer_, const UartSettings& settings) :
-    Base{irqTimer_, settings.checkForIdleTimeUs, settings.generateIdleTimeUs},
+StmUart::StmUart(StmGpio& gpio_, StmInterruptTimer& irqTimer_, const UartSettings& settings, Span<std::uint8_t> sendBuffer) :
+    Base{sendBuffer, irqTimer_, settings.checkForIdleTimeUs, settings.generateIdleTimeUs},
     gpio{gpio_}
 {
     std::uint8_t irqn = 0;

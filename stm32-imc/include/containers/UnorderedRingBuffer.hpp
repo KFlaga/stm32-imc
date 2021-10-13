@@ -1,5 +1,6 @@
 #pragma once
 
+#include <misc/Assert.hpp>
 #include <cstdint>
 #include <array>
 #include <algorithm>
@@ -38,9 +39,10 @@ public:
     }
 
     /// Access element in container.
-    /// Index specifies element place in memory, not
+    /// Index specifies element place in memory, not in addition order
     auto operator[](int i) const
     {
+        dyna_assert(i < maxSize);
         return data[i];
     }
 
@@ -59,12 +61,14 @@ public:
     /// Returns next oldest element index after one at index i.
     std::uint16_t nextIndex(std::uint16_t i) const
     {
+        dyna_assert(i < maxSize);
         return i >= maxSize - 1 ? 0 : i + 1;
     }
 
     /// Returns previous oldest element index after one at index i.
     std::uint16_t prevIndex(std::uint16_t i) const
     {
+        dyna_assert(i < maxSize);
         return i == 0 ? maxSize - 1 : i - 1;
     }
 

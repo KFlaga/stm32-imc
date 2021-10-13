@@ -17,7 +17,6 @@ cmake \
     -DTARGET_TRIPLET=arm-none-eabi \
     -DTOOLCHAIN_PREFIX="c:/Program Files (x86)/Atollic/xpack-arm-none-eabi-gcc-9.2.1-1.1" \
     -DIMC_DEVICE_ROLE=Master \
-    -DIMC_MAX_MESSAGE_SIZE=24 \
     ..
 ```
 To build uts, which run on PC, only required argument is `-DBUILD_TARGET=tests` (uses default toolchain).

@@ -120,7 +120,7 @@ using ReceiveError = Message<ReceiveErrorContents, makeMessageId(controlMessageR
 /// KeepAlive is used to keep communication alive by Slave (sent by Slave only)
 using KeepAlive = Message<EmptyMessageContents, makeMessageId(controlMessageRecipient, 0x04)>;
 
-constexpr std::uint8_t controlMessageMaxSize = std::max({
+constexpr auto controlMessageMaxSize = std::max({
     sizeof(Handshake),
     sizeof(Acknowledge),
     sizeof(ReceiveError),
