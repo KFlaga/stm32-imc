@@ -1160,3 +1160,67 @@ ADD_TEST_F(ImcModuleTest, whenMessageQueueIsFull_doesntSendAnyMessages)
     // Only 2 KAs are queued and sent despite 3 updates() which tries to send them
     EXPECT_SENT_MESSAGES_ID(uart, makeMessage<ImcProtocol::KeepAlive>(0), makeMessage<ImcProtocol::KeepAlive>(0));
 }
+
+
+struct TestMessageContents2
+{
+    std::uint32_t a = 0;
+    std::uint32_t b = 0;
+    std::uint32_t c = 0;
+    std::uint32_t d = 0;
+};
+using TestMessage2 = ImcProtocol::Message<TestMessageContents2, ImcProtocol::makeMessageId(testRecipent, 2)>;
+
+struct TestRecipient : public ImcRecipent<TestRecipient, testRecipent, TestMessage, TestMessage2>
+{
+    bool handleMessage(TestMessageContents& m, int&)
+    {
+        m.b = 10;
+        return true;
+    }
+
+    bool handleMessage(TestMessageContents2& m, int&)
+    {
+        m.c = 20;
+        return true;
+    }
+};
+
+static_assert(TestRecipient::maxMessageSize == 24, "Expected: TestRecipient::maxMessageSize == 24");
+static_assert(TestRecipient::recipentNumber == 2, "Expected: TestRecipient::recipentNumber == 2");
+
+ADD_TEST(ImcRecipientTest, dispatchValidMessages)
+{
+    TestRecipient r{};
+    int dummy = 0;
+    TestMessage m1{};
+    TestMessage2 m2{};
+
+    bool v1 = r.dispatch(dummy, TestMessage::myId, TestMessage::dataSize, reinterpret_cast<std::uint8_t*>(&m1.data));
+    EXPECT_TRUE(v1);
+    EXPECT_EQUAL(10u, m1.data.b);
+    EXPECT_EQUAL(0u, m2.data.c);
+
+    bool v2 = r.dispatch(dummy, TestMessage2::myId, TestMessage2::dataSize, reinterpret_cast<std::uint8_t*>(&m2.data));
+    EXPECT_TRUE(v2);
+    EXPECT_EQUAL(10u, m1.data.b);
+    EXPECT_EQUAL(20u, m2.data.c);
+}
+
+ADD_TEST(ImcRecipientTest, dispatchInalidMessages)
+{
+    TestRecipient r{};
+    int dummy = 0;
+    TestMessage m1{};
+    TestMessage2 m2{};
+
+    bool v1 = r.dispatch(dummy, 0, TestMessage::dataSize, reinterpret_cast<std::uint8_t*>(&m1.data));
+    EXPECT_FALSE(v1);
+    EXPECT_EQUAL(0u, m1.data.b);
+    EXPECT_EQUAL(0u, m2.data.c);
+
+    bool v2 = r.dispatch(dummy, TestMessage2::myId, 143, reinterpret_cast<std::uint8_t*>(&m2.data));
+    EXPECT_FALSE(v2);
+    EXPECT_EQUAL(0u, m1.data.b);
+    EXPECT_EQUAL(0u, m2.data.c);
+}

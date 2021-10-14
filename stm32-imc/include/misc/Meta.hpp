@@ -78,16 +78,25 @@ struct parameters_count<T<Ts...>>
     static constexpr auto value = sizeof...(Ts);
 };
 
-/// Returns true if e(t) is compilable.
-template<typename T, typename Expr>
-constexpr auto is_valid_expression(T&& t, Expr&& e) -> decltype(e(t), bool())
+namespace detail
+{
+template<typename Expr, typename... Args>
+constexpr auto is_valid_expression_helper(Expr&& e, parameter_pack<Args...>) -> decltype(e(std::declval<Args>()...), bool())
 {
     return true;
 }
 
-constexpr bool is_valid_expression(...)
+constexpr bool is_valid_expression_helper(...)
 {
     return false;
+}
+}
+
+/// Returns true if e(t...) is compilable, where t... is list of references of type Args....
+template<typename... Args, typename Expr>
+constexpr bool is_valid_expression(Expr&& e)
+{
+    return detail::is_valid_expression_helper(std::forward<Expr>(e), parameter_pack<Args...>{});
 }
 
 namespace detail
@@ -239,6 +248,26 @@ struct pack_position
 {
     static constexpr int value = detail::pack_position_helper<0, T, Pack>::value;
 };
+
+namespace detail
+{
+template<int current, int desired, typename T, typename... Ts>
+struct type_at_helper
+{
+	static_assert(desired <= sizeof...(Ts), "type_at: index is bigger than number of types in variadic pack");
+	using type = typename type_at_helper<current+1, desired, Ts...>::type;
+};
+
+template<int desired, typename T, typename... Ts>
+struct type_at_helper<desired, desired, T, Ts...>
+{
+	using type = T;
+};
+}
+
+/// Defines i-th type in pack Ts..
+template<int i, typename...Ts>
+using type_at = typename detail::type_at_helper<0, i, Ts...>::type;
 
 /// Has static member value indicating whether T is the only type in Ts
 template<typename T, typename... Ts>

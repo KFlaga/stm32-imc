@@ -56,11 +56,6 @@ static_assert(parameters_count<PackB<int>>::value == 1,
 static_assert(parameters_count<PackB<PackA<>>>::value == 1,
         "parameters_count<PackB<PackA<>>>");
 
-static_assert(is_valid_expression(T1{}, [](auto&& x) -> decltype(x.t1()) {}),
-        "is_valid_expression T1");
-static_assert(not is_valid_expression(T2{}, [](auto&& x) -> decltype(x.t1()) {}),
-        "is_valid_expression T2");
-
 static_assert(is_instantiation_of<PackA, PackA<>>::value,
         "is_instantiation_of OK 1");
 static_assert(is_instantiation_of<PackA, PackA<T1>>::value,
@@ -87,25 +82,33 @@ static_assert(false == is_only_type_in_pack<char, char, int>::value,
 static_assert(false == is_only_type_in_pack<char, int>::value,
         "is_only_type_in_pack<char, int>");
 
+
 void f1(int) {}
 void f2() {}
+void f3(int, T1) {}
 
-static_assert(true == is_valid_expression(3, f1),
-        "is_valid_expression(3, void(int))");
-static_assert(false == is_valid_expression(3, f2),
-        "is_valid_expression(3, void())");
+static_assert(is_valid_expression<int>(f1),
+        "is_valid_expression<int>(void(int))");
+static_assert(not is_valid_expression<int>(f2),
+        "is_valid_expression<int>(void())");
+static_assert(is_valid_expression<int, T1>(f3),
+        "is_valid_expression<int, T1>(void(int, T1))");
+
+static_assert(is_valid_expression<T1>([](auto&& x) -> decltype(x.t1()) {}),
+        "is_valid_expression T1");
+static_assert(not is_valid_expression<T2>([](auto&& x) -> decltype(x.t1()) {}),
+        "is_valid_expression T2");
 
 struct I1 {};
 struct I2 { int x; };
 
-static_assert(true == is_valid_initialization<I1>(),
+static_assert(is_valid_initialization<I1>(),
         "is_valid_initialization<I1>()");
-static_assert(false == is_valid_initialization<I1, int>(),
+static_assert(not is_valid_initialization<I1, int>(),
         "is_valid_initialization<I1, int>()");
-static_assert(true == is_valid_initialization<I2>(),
+static_assert(is_valid_initialization<I2>(),
         "is_valid_initialization<I2>()");
-static_assert(true == is_valid_initialization<I2, int>(),
+static_assert(is_valid_initialization<I2, int>(),
         "is_valid_initialization<I2, int>()");
-static_assert(false == is_valid_initialization<I2, int, int>(),
+static_assert(not is_valid_initialization<I2, int, int>(),
         "is_valid_initialization<I2, int, int>()");
-

@@ -164,7 +164,6 @@ public:
 
     /// Creates array and initializes it with given values
     /// \param args a list of values of type T
-    /// std::initializer_list is not used as constructing array from it is not constexpr
     template<typename... Args, typename = std::enable_if_t<mp::is_valid_initialization<std::array<T, maxSize>, Args...>()>>
     constexpr StaticVector(Args&&... args) :
 		Base{sizeof...(args)},

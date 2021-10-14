@@ -55,14 +55,37 @@ constexpr std::uint8_t messageMaxSize = std::max({
 
 using Imc = InterMcuCommunicationModule<StmUart, StmCrc, messageMaxSize, isImcMaster>;
 
+class MainRecipient : public ImcRecipent<MainRecipient, mainRecipent, MessageToReceive>
+{
+public:
+    template<typename ImcModule>
+    bool handleMessage(MessageToReceive::Data& m, ImcModule&)
+    {
+        // Callback handler for received messages
+        // Will light up leds according to received message contents.
+        gpio.port(led1Pin.port).set(led1Pin.pin, m.led1State);
+        gpio.port(led3Pin.port).set(led3Pin.pin, m.buttonState);
+
+        return true;
+    }
+
+    MainRecipient(StmGpio& gpio_, PortPin led1Pin_, PortPin led3Pin_) :
+        gpio{gpio_},
+        led1Pin{led1Pin_},
+        led3Pin{led3Pin_}
+    {
+    }
+
+    StmGpio& gpio;
+    PortPin led1Pin;
+    PortPin led3Pin;
+};
+
 }
 
-void dyna_assert_impl(bool cond, const char* expr, const char* file, int line)
+void dyna_assert_impl(bool, const char*, const char*, int)
 {
-	(void)expr;
-	(void)cond;
-	(void)file;
-	(void)line;
+    // Here goes assertion code. May save some diagnostics and rise a fault, but its out of scope of this example.
 }
 
 int main(void)
@@ -105,32 +128,8 @@ int main(void)
     };
     Imc imc{uart, crc, imcSettings};
 
-    // Callback handler for received messages
-    // Will light up leds according to received message contents.
-    auto receiver = [&](std::uint8_t id, std::uint8_t dataSize, std::uint8_t* data)
-    {
-        if(id == MessageToReceive::myId && dataSize == MessageToReceive::dataSize)
-        {
-            MessageToReceive::Data& m = ImcProtocol::decode<MessageToReceive::Data>(data);
-            gpio.port(led1Pin.port).set(led1Pin.pin, m.led1State);
-            gpio.port(led3Pin.port).set(led3Pin.pin, m.buttonState);
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    };
-
-    imc.registerMessageRecipient(
-        mainRecipent,
-        {[](CallbackContext ctx, Imc&, std::uint8_t id, std::uint8_t dataSize, std::uint8_t* data)
-        {
-            // Passing capturing lambda as context to use objects from local scope inside callback
-            return (*reinterpret_cast<decltype(receiver)*>(ctx))(id, dataSize, data);
-        },
-        &receiver
-    });
+    auto receiver = MainRecipient{gpio, led1Pin, led3Pin};
+    receiver.registerRecipient(imc);
 
     usTimer.turnOn();
     uart.turnOn();

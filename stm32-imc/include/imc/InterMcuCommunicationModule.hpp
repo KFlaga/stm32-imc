@@ -6,10 +6,12 @@
 #include <imc/ImcSettings.hpp>
 #include <imc/ImcSlaveControl.hpp>
 #include <imc/ImcMasterControl.hpp>
+#include <imc/ImcRecipient.hpp>
 #include <peripheral/UartBase.hpp>
 #include <peripheral/CrcBase.hpp>
 #include <misc/Callback.hpp>
 #include <misc/Meta.hpp>
+#include <misc/Assert.hpp>
 
 namespace DynaSoft
 {
@@ -51,29 +53,40 @@ private:
     using ImcControl = std::conditional_t<isMaster, ImcMasterControl<Uart, maxMessageSize>, ImcSlaveControl<Uart, maxMessageSize>>;
 
 public:
-    using MessageRecipientFunc = bool(*)( // should return true if message is supported and has valid contents
+    /// Function signature for message recipients callbacks
+    /// \param context Context passed to register function
+    /// \param imc Reference to this ImcModule object
+    /// \param id Id of received message
+    /// \param dataSize Size of MessageContents
+    /// \param data Pointer to MessageContents
+    /// \return true if message is supported and has valid contents
+    using MessageRecipientFunc = bool(*)(
         CallbackContext,
         InterMcuCommunicationModule&,
-        std::uint8_t, // id
-        std::uint8_t, // data size
-        std::uint8_t* // data
+        std::uint8_t,
+        std::uint8_t,
+        std::uint8_t*
     );
     using MessageRecipient = Callback<MessageRecipientFunc>;
 
     InterMcuCommunicationModule(Uart& uart_, Crc& crc_, ImcSettings& settings_) :
-        uart{uart_},
-        crc{crc_},
-        receiver{uart},
-        sender{uart},
-        control{uart, receiver, sender, settings_},
-        settings{settings_}
+        uart{ uart_ },
+        crc{ crc_ },
+        receiver{ uart },
+        sender{ uart },
+        control{ uart, receiver, sender, settings_ },
+        settings{ settings_ }
     {
     }
 
     /// Registers callback that will be called when message with corresponding recipient number is received.
+    ///
+    /// \param recipientNumber Unique number of recipient module, should be one of {1, 2, 3}
+    /// \param recipient Callback that will be called when message with corresponding recipient number is received.
     void registerMessageRecipient(std::uint8_t recipientNumber, MessageRecipient recipient)
     {
-        recipients[recipientNumber & 0x03] = recipient;
+        dyna_assert(recipientNumber > 0 && recipientNumber < 4);
+        recipients[recipientNumber] = recipient;
     }
 
     /// Should be called regularly from main loop.
@@ -82,7 +95,9 @@ public:
     {
         control.updateTimers(loopUs);
 
-        while(handleReceivedMessage()) {}
+        while(handleReceivedMessage())
+        {
+        }
 
         if(receiver.hasError())
         {
@@ -90,7 +105,7 @@ public:
             receiver.clearError();
         }
 
-        control.updateStatus([this](auto& m) { return sendControlMessage(m); });
+        control.updateStatus([this](auto& m) { return sendControlMessage(m);});
     }
 
     /// Tries to send a message to other MCU.
@@ -211,23 +226,27 @@ private:
 
     bool checkReceivedMessageIsValid(ReceivedMessage& message)
     {
-        if(message.size() < 8)
+        constexpr std::uint8_t headerSize = 4;
+        constexpr std::uint8_t headerAndCrcSize = 8;
+
+        if(message.size() < headerAndCrcSize)
         {
             return false;
         }
 
         std::uint8_t dataSize = message[1];
+        // As crc is 4-byte aligned, message contents are padded to 4 bytes
         std::uint8_t dataSizeWithPadding = dataSize > 4 ? dataSize + 3 - ((dataSize + 3) % 4) : 4;
 
-        if(dataSizeWithPadding != message.size() - 8)
+        if(dataSizeWithPadding != message.size() - headerAndCrcSize)
         {
             return false;
         }
 
-        std::uint8_t crcOffset = message.size() - 4;
+        std::uint8_t crcOffset = message.size() - headerSize;
         std::uint32_t crc = *reinterpret_cast<std::uint32_t*>(message.data() + crcOffset);
 
-        if(crc != computeCrc(message.data(), 4 + dataSize))
+        if(crc != computeCrc(message.data(), headerSize + dataSize))
         {
             return false;
         }
@@ -237,17 +256,18 @@ private:
 
     bool dispatchMessage(ReceivedMessage& message)
     {
+        constexpr std::uint8_t sequenceOffset = 2;
+        constexpr std::uint8_t dataOffset = 4;
+
         std::uint8_t id = message[0];
         std::uint8_t dataSize = message[1];
-        constexpr std::uint8_t sequenceOffset = 2;
         std::uint16_t sequence = *reinterpret_cast<std::uint16_t*>(message.data() + sequenceOffset);
-        constexpr std::uint8_t dataOffset = 4;
         std::uint8_t* data = message.data() + dataOffset;
 
         std::uint8_t rIdx = ImcProtocol::getRecipientNumber(id);
         if(rIdx == 0)
         {
-            return control.dispatchControlMessage([this](auto& m) { return sendControlMessage(m); }, id, sequence, dataSize, data);
+            return control.dispatchControlMessage([this](auto& m) { return sendControlMessage(m);}, id, sequence, dataSize, data);
         }
         else
         {
@@ -259,7 +279,7 @@ private:
 
     void responseWithReceiveError()
     {
-        ImcProtocol::ReceiveError response{};
+        ImcProtocol::ReceiveError response {};
         response.data.lastOkSequence = lastReceivedSequence;
         sendControlMessage(response);
     }
@@ -270,7 +290,7 @@ private:
     ImcSender<Uart, maxMessageSize> sender;
     ImcControl control;
 
-    std::array<MessageRecipient, 4> recipients{};
+    std::array<MessageRecipient, 4> recipients {};
 
     ImcSettings& settings;
     std::uint16_t nextSequence = 0;
