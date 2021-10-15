@@ -4,12 +4,6 @@
 #include <tuple>
 #include <initializer_list>
 
-/// Expands any expression that contains variadic parameter
-///
-/// Abuses initializer list unfolding to call expr for each argument in variadic parameter pack
-/// in correct order (as evaluation of expressions inside initializer list is defined).
-#define EXPAND_VARIADIC_EXPRESSION(expr) (void)std::initializer_list<int>{((expr), 0)...};
-
 namespace mp
 {
 
@@ -133,7 +127,7 @@ namespace detail
 template <class F, class Tuple, std::size_t... I>
 constexpr decltype(auto) apply_impl(F&& f, Tuple&& t, std::index_sequence<I...>)
 {
-    EXPAND_VARIADIC_EXPRESSION(f(std::get<I>(std::forward<Tuple>(t))));
+    (f(std::get<I>(std::forward<Tuple>(t))), ...);
 }
 }
 

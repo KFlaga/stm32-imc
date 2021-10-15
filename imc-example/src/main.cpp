@@ -59,12 +59,12 @@ class MainRecipient : public ImcRecipent<MainRecipient, mainRecipent, MessageToR
 {
 public:
     template<typename ImcModule>
-    bool handleMessage(MessageToReceive::Data& m, ImcModule&)
+    bool handleMessage(MessageToReceive& m, ImcModule&)
     {
         // Callback handler for received messages
         // Will light up leds according to received message contents.
-        gpio.port(led1Pin.port).set(led1Pin.pin, m.led1State);
-        gpio.port(led3Pin.port).set(led3Pin.pin, m.buttonState);
+        gpio.port(led1Pin.port).set(led1Pin.pin, m.data.led1State);
+        gpio.port(led3Pin.port).set(led3Pin.pin, m.data.buttonState);
 
         return true;
     }

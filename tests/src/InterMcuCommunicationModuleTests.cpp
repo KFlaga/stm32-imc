@@ -229,7 +229,7 @@ void expectSentMessages(TestUart& uart, const std::string& fileLine, const Messa
     auto msgSize = (sizeof(msg) + ...);
     ASSERT_EQUAL_EXT(msgSize, uart.sentBytes.size(), fileLine);
     std::uint8_t index = 0;
-    EXPAND_VARIADIC_EXPRESSION(index = detail::expectMessage<onlyCheckId>(uart.sentBytes, fileLine, msg, index));
+    ((index = detail::expectMessage<onlyCheckId>(uart.sentBytes, fileLine, msg, index)), ...);
     uart.sentBytes.clear();
 }
 
@@ -924,7 +924,7 @@ ADD_TEST_F(ImcModuleTest, whenUserDataIsReceived_dispatchesToRecipient)
             ASSERT_EQUAL(TestMessage::myId, id);
             ASSERT_EQUAL(TestMessage::dataSize, size);
 
-            TestMessageContents& message = *reinterpret_cast<TestMessageContents*>(data);
+            TestMessageContents& message = reinterpret_cast<TestMessage*>(data)->data;
             EXPECT_EQUAL(1u, message.a);
             EXPECT_EQUAL(2u, message.b);
             *reinterpret_cast<bool*>(ctx) = true;
@@ -1173,15 +1173,15 @@ using TestMessage2 = ImcProtocol::Message<TestMessageContents2, ImcProtocol::mak
 
 struct TestRecipient : public ImcRecipent<TestRecipient, testRecipent, TestMessage, TestMessage2>
 {
-    bool handleMessage(TestMessageContents& m, int&)
+    bool handleMessage(TestMessage& m, int&)
     {
-        m.b = 10;
+        m.data.b = 10;
         return true;
     }
 
-    bool handleMessage(TestMessageContents2& m, int&)
+    bool handleMessage(TestMessage2& m, int&)
     {
-        m.c = 20;
+        m.data.c = 20;
         return true;
     }
 };
@@ -1196,12 +1196,12 @@ ADD_TEST(ImcRecipientTest, dispatchValidMessages)
     TestMessage m1{};
     TestMessage2 m2{};
 
-    bool v1 = r.dispatch(dummy, TestMessage::myId, TestMessage::dataSize, reinterpret_cast<std::uint8_t*>(&m1.data));
+    bool v1 = r.dispatch(dummy, TestMessage::myId, TestMessage::dataSize, reinterpret_cast<std::uint8_t*>(&m1));
     EXPECT_TRUE(v1);
     EXPECT_EQUAL(10u, m1.data.b);
     EXPECT_EQUAL(0u, m2.data.c);
 
-    bool v2 = r.dispatch(dummy, TestMessage2::myId, TestMessage2::dataSize, reinterpret_cast<std::uint8_t*>(&m2.data));
+    bool v2 = r.dispatch(dummy, TestMessage2::myId, TestMessage2::dataSize, reinterpret_cast<std::uint8_t*>(&m2));
     EXPECT_TRUE(v2);
     EXPECT_EQUAL(10u, m1.data.b);
     EXPECT_EQUAL(20u, m2.data.c);
@@ -1214,12 +1214,12 @@ ADD_TEST(ImcRecipientTest, dispatchInalidMessages)
     TestMessage m1{};
     TestMessage2 m2{};
 
-    bool v1 = r.dispatch(dummy, 0, TestMessage::dataSize, reinterpret_cast<std::uint8_t*>(&m1.data));
+    bool v1 = r.dispatch(dummy, 0, TestMessage::dataSize, reinterpret_cast<std::uint8_t*>(&m1));
     EXPECT_FALSE(v1);
     EXPECT_EQUAL(0u, m1.data.b);
     EXPECT_EQUAL(0u, m2.data.c);
 
-    bool v2 = r.dispatch(dummy, TestMessage2::myId, 143, reinterpret_cast<std::uint8_t*>(&m2.data));
+    bool v2 = r.dispatch(dummy, TestMessage2::myId, 143, reinterpret_cast<std::uint8_t*>(&m2));
     EXPECT_FALSE(v2);
     EXPECT_EQUAL(0u, m1.data.b);
     EXPECT_EQUAL(0u, m2.data.c);

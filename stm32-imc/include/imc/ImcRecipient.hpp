@@ -8,10 +8,9 @@ namespace DynaSoft
 
 /// Base class for message recipients responsible for handling received messages
 ///
-/// Derived class should define function handleMessage - one overload for each type in Messages,
-/// with signature:
-/// \code bool handleMessage(MessageContents&, ImcModule&) \endcode
-/// , where MessageContents is Message::Data.
+/// Derived class should define function handleMessage,
+/// one overload for each type Message in Messages, with signature:
+/// \code bool handleMessage(Message&, ImcModule&) \endcode
 /// It will be called when message with corresponding id is received.
 /// handleMessage should return true if received message is valid.
 ///
@@ -63,6 +62,9 @@ private:
         [[maybe_unused]] std::uint8_t* data,
         std::integral_constant<int, i>)
     {
+        // There is possibility for iterative version using fold expression, but it seems
+        // arm-gcc 9.2 handles inlining of recursive version better if 'handleMessage' does some complex work
+        // For simple function it generates identical code, same as chained if/else
         if constexpr(i < sizeof...(Messages))
         {
             using Message = mp::type_at<i, Messages...>;
@@ -87,11 +89,10 @@ private:
         std::uint8_t dataSize,
         std::uint8_t* data)
     {
-        using MessageContents = typename Message::Data;
-        if(dataSize == sizeof(MessageContents))
+        if(dataSize == Message::dataSize)
         {
-            MessageContents& contents = ImcProtocol::decode<MessageContents>(data);
-            return static_cast<Derived*>(this)->handleMessage(contents, imc);
+            Message& m = ImcProtocol::decode<Message>(data);
+            return static_cast<Derived*>(this)->handleMessage(m, imc);
         }
         else
         {

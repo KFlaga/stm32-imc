@@ -4,6 +4,7 @@
 #include <imc/ImcReceiver.hpp>
 #include <imc/ImcSender.hpp>
 #include <imc/ImcSettings.hpp>
+#include <imc/ImcRecipient.hpp>
 #include <peripheral/UartBase.hpp>
 
 namespace DynaSoft
@@ -24,8 +25,16 @@ namespace DynaSoft
 ///
 /// Should handle receiver errors but for now they are just ignored - no application requires it.
 template<typename Uart, std::uint8_t maxMessageSize>
-class ImcSlaveControl
+class ImcSlaveControl : public ImcRecipent<
+        ImcSlaveControl<Uart, maxMessageSize>,
+        ImcProtocol::controlMessageRecipient,
+        ImcProtocol::Acknowledge,
+        ImcProtocol::ReceiveError
+    >
 {
+    template<typename, std::uint8_t, typename...>
+    friend class ImcRecipent; // for handleMessage to be private
+
 public:
     using ReceivedMessage = typename ImcReceiver<Uart, maxMessageSize>::MessageBuffer;
 
@@ -49,30 +58,16 @@ public:
         keepAliveAckTimeout += loopUs;
     }
 
-    template<typename SendMessage>
-    void updateStatus(SendMessage sendMessage)
+    template<typename ImcModule>
+    void updateStatus(ImcModule& imc)
     {
         checkKeepAliveAckTimeout();
-        sendNotification(sendMessage);
+        sendNotification(imc);
     }
 
     bool hasCommunicationEstablished() const
     {
         return communicationIsEstablished;
-    }
-
-    template<typename SendMessage>
-    bool dispatchControlMessage(SendMessage, std::uint8_t id, std::uint16_t, std::uint8_t size, std::uint8_t* data)
-    {
-        if(id == ImcProtocol::Acknowledge::myId)
-        {
-            return handleAck(data, size);
-        }
-        else if(id == ImcProtocol::ReceiveError::myId)
-        {
-            return handleError();
-        }
-        return false;
     }
 
     void onMessageSent()
@@ -85,26 +80,26 @@ public:
     }
 
 private:
-    template<typename SendMessage>
-    void sendNotification(SendMessage sendMessage)
+    template<typename ImcModule>
+    void sendNotification(ImcModule& imc)
     {
         if(!communicationIsEstablished)
         {
-            sendNotificationMessage<ImcProtocol::Handshake>(sendMessage, settings.slaveHandshakeIntervalUs);
+            sendNotificationMessage<ImcProtocol::Handshake>(imc, settings.slaveHandshakeIntervalUs);
         }
         else
         {
-            sendNotificationMessage<ImcProtocol::KeepAlive>(sendMessage, settings.slaveKeepAliveIntervalUs);
+            sendNotificationMessage<ImcProtocol::KeepAlive>(imc, settings.slaveKeepAliveIntervalUs);
         }
     }
 
-    template<typename Message, typename SendMessage>
-    void sendNotificationMessage(SendMessage sendMessage, std::uint32_t interval)
+    template<typename Message, typename ImcModule>
+    void sendNotificationMessage(ImcModule& imc, std::uint32_t interval)
     {
         if(notificationTimer >= interval)
         {
             Message notification{};
-            sendMessage(notification);
+            imc.sendMessage(notification);
         }
     }
 
@@ -119,17 +114,12 @@ private:
         }
     }
 
-    bool handleAck(std::uint8_t* data, std::uint8_t size)
+    template<typename ImcModule>
+    bool handleMessage(ImcProtocol::Acknowledge& m, ImcModule&)
     {
-        if(size != sizeof(ImcProtocol::AckMessageContents))
-        {
-            return false;
-        }
-
-        ImcProtocol::AckMessageContents& ack = *reinterpret_cast<ImcProtocol::AckMessageContents*>(data);
         if(!communicationIsEstablished)
         {
-            if(ack.ackId == ImcProtocol::Handshake::myId)
+            if(m.data.ackId == ImcProtocol::Handshake::myId)
             {
                 communicationIsEstablished = true;
                 keepAliveAckTimeout = 0;
@@ -137,7 +127,7 @@ private:
         }
         else
         {
-            if(ack.ackId == ImcProtocol::KeepAlive::myId)
+            if(m.data.ackId == ImcProtocol::KeepAlive::myId)
             {
                 keepAliveAckTimeout = 0;
             }
@@ -145,7 +135,8 @@ private:
         return true;
     }
 
-    bool handleError()
+    template<typename ImcModule>
+    bool handleMessage(ImcProtocol::ReceiveError&, ImcModule&)
     {
         return true;
     }

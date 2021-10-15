@@ -57,8 +57,8 @@ public:
     /// \param context Context passed to register function
     /// \param imc Reference to this ImcModule object
     /// \param id Id of received message
-    /// \param dataSize Size of MessageContents
-    /// \param data Pointer to MessageContents
+    /// \param dataSize Size of Message::Data
+    /// \param data Pointer to Message object
     /// \return true if message is supported and has valid contents
     using MessageRecipientFunc = bool(*)(
         CallbackContext,
@@ -86,7 +86,7 @@ public:
     void registerMessageRecipient(std::uint8_t recipientNumber, MessageRecipient recipient)
     {
         dyna_assert(recipientNumber > 0 && recipientNumber < 4);
-        recipients[recipientNumber] = recipient;
+        recipients[recipientNumber-1] = recipient;
     }
 
     /// Should be called regularly from main loop.
@@ -105,7 +105,7 @@ public:
             receiver.clearError();
         }
 
-        control.updateStatus([this](auto& m) { return sendControlMessage(m);});
+        control.updateStatus(*this);
     }
 
     /// Tries to send a message to other MCU.
@@ -120,7 +120,15 @@ public:
     template<typename MessageT>
     bool sendMessage(MessageT& msg)
     {
-        return sendUserMessage(msg);
+        constexpr std::uint8_t rIdx = ImcProtocol::getRecipientNumber(MessageT::myId);
+        if constexpr(rIdx == ImcProtocol::controlMessageRecipient)
+        {
+            return sendControlMessage(msg);
+        }
+        else
+        {
+            return sendUserMessage(msg);;
+        }
     }
 
     /// Returns true if communication with other device was established.
@@ -256,22 +264,18 @@ private:
 
     bool dispatchMessage(ReceivedMessage& message)
     {
-        constexpr std::uint8_t sequenceOffset = 2;
-        constexpr std::uint8_t dataOffset = 4;
-
         std::uint8_t id = message[0];
         std::uint8_t dataSize = message[1];
-        std::uint16_t sequence = *reinterpret_cast<std::uint16_t*>(message.data() + sequenceOffset);
-        std::uint8_t* data = message.data() + dataOffset;
+        std::uint8_t* data = message.data();
 
         std::uint8_t rIdx = ImcProtocol::getRecipientNumber(id);
-        if(rIdx == 0)
+        if(rIdx == ImcProtocol::controlMessageRecipient)
         {
-            return control.dispatchControlMessage([this](auto& m) { return sendControlMessage(m);}, id, sequence, dataSize, data);
+            return control.dispatch(*this, id, dataSize, data);
         }
         else
         {
-            auto& recipient = recipients[rIdx];
+            auto& recipient = recipients[rIdx-1];
             return recipient(*this, id, dataSize, data);
         }
         return false;
@@ -290,7 +294,7 @@ private:
     ImcSender<Uart, maxMessageSize> sender;
     ImcControl control;
 
-    std::array<MessageRecipient, 4> recipients {};
+    std::array<MessageRecipient, 3> recipients {};
 
     ImcSettings& settings;
     std::uint16_t nextSequence = 0;

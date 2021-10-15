@@ -4,6 +4,7 @@
 #include <imc/ImcReceiver.hpp>
 #include <imc/ImcSender.hpp>
 #include <imc/ImcSettings.hpp>
+#include <imc/ImcRecipient.hpp>
 #include <peripheral/UartBase.hpp>
 
 namespace DynaSoft
@@ -21,8 +22,17 @@ namespace DynaSoft
 ///
 /// Should handle receiver errors but for now they are just ignored - no application requires it.
 template<typename Uart, std::uint8_t maxMessageSize>
-class ImcMasterControl
+class ImcMasterControl : public ImcRecipent<
+        ImcMasterControl<Uart, maxMessageSize>,
+        ImcProtocol::controlMessageRecipient,
+        ImcProtocol::Handshake,
+        ImcProtocol::KeepAlive,
+        ImcProtocol::ReceiveError
+    >
 {
+    template<typename, std::uint8_t, typename...>
+    friend class ImcRecipent; // for handleMessage to be private
+
 public:
     using ReceivedMessage = typename ImcReceiver<Uart, maxMessageSize>::MessageBuffer;
 
@@ -44,8 +54,8 @@ public:
         communicationTimeoutTimer += loopUs;
     }
 
-    template<typename SendMessage>
-    void updateStatus(SendMessage)
+    template<typename ImcModule>
+    void updateStatus(ImcModule&)
     {
         if(communicationTimeoutTimer >= settings.masterCommunicationTimeoutUs)
         {
@@ -58,24 +68,6 @@ public:
         return communicationIsEstablished;
     }
 
-    template<typename SendMessage>
-    bool dispatchControlMessage(SendMessage sendMessage, std::uint8_t id, std::uint16_t sequence, std::uint8_t size, std::uint8_t* data)
-    {
-        if(id == ImcProtocol::Handshake::myId)
-        {
-            return handleHandshake(sendMessage, data, size, sequence);
-        }
-        else if(id == ImcProtocol::KeepAlive::myId)
-        {
-            return handleKeepAlive(sendMessage, data, size, sequence);
-        }
-        else if(id == ImcProtocol::ReceiveError::myId)
-        {
-            return handleError();
-        }
-        return false;
-    }
-
     void onMessageSent()
     {
     }
@@ -86,44 +78,34 @@ public:
     }
 
 private:
-    template<typename SendMessage>
-    bool handleHandshake(SendMessage sendMessage, std::uint8_t*, std::uint8_t size, std::uint16_t sequence)
+    template<typename ImcModule>
+    bool handleMessage(ImcProtocol::Handshake& m, ImcModule& imc)
     {
-        if(size != ImcProtocol::Handshake::dataSize)
-        {
-            return false;
-        }
-
         ImcProtocol::Acknowledge ack{};
         ack.data.ackId = ImcProtocol::Handshake::myId;
-        ack.data.ackSequence = sequence;
-        sendMessage(ack);
+        ack.data.ackSequence = m.sequence;
+        imc.sendMessage(ack);
 
         communicationIsEstablished = true;
 
         return true;
     }
 
-    template<typename SendMessage>
-    bool handleKeepAlive(SendMessage sendMessage, std::uint8_t*, std::uint8_t size, std::uint16_t sequence)
+    template<typename ImcModule>
+    bool handleMessage(ImcProtocol::KeepAlive& m, ImcModule& imc)
     {
-        if(size != ImcProtocol::KeepAlive::dataSize)
-        {
-            return false;
-        }
-
         if(communicationIsEstablished)
         {
             ImcProtocol::Acknowledge ack{};
             ack.data.ackId = ImcProtocol::KeepAlive::myId;
-            ack.data.ackSequence = sequence;
-            sendMessage(ack);
+            ack.data.ackSequence = m.sequence;
+            imc.sendMessage(ack);
         }
-
         return true;
     }
 
-    bool handleError()
+    template<typename ImcModule>
+    bool handleMessage(ImcProtocol::ReceiveError& m, ImcModule& imc)
     {
         return true;
     }
