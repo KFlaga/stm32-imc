@@ -73,13 +73,13 @@ static_assert(1 == pack_position<float, parameter_pack<int, float>>::value,
 static_assert(-1 == pack_position<char, parameter_pack<int, float>>::value,
         "pack_position 2");
 
-static_assert(false == is_only_type_in_pack<char>::value,
+static_assert(not is_only_type_in_pack<char>::value,
         "is_only_type_in_pack<char>");
-static_assert(true == is_only_type_in_pack<char, char>::value,
+static_assert(is_only_type_in_pack<char, char>::value,
         "is_only_type_in_pack<char, char>");
-static_assert(false == is_only_type_in_pack<char, char, int>::value,
+static_assert(not is_only_type_in_pack<char, char, int>::value,
         "is_only_type_in_pack<char, char, int>");
-static_assert(false == is_only_type_in_pack<char, int>::value,
+static_assert(not is_only_type_in_pack<char, int>::value,
         "is_only_type_in_pack<char, int>");
 
 
@@ -112,3 +112,10 @@ static_assert(is_valid_initialization<I2, int>(),
         "is_valid_initialization<I2, int>()");
 static_assert(not is_valid_initialization<I2, int, int>(),
         "is_valid_initialization<I2, int, int>()");
+
+static_assert(std::is_same_v<int, type_at<0, int, double>>,
+        "std::is_same_v<int, type_at<0, int, double>>");
+static_assert(std::is_same_v<double, type_at<1, int, double>>,
+        "std::is_same_v<int, type_at<1, int, double>>");
+static_assert(std::is_same_v<char, type_at<4, int, double, I1, I2, char>>,
+        "std::is_same_v<char, type_at<5, int, double, I1, I2, char>>");

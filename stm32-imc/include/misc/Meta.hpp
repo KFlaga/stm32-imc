@@ -254,7 +254,7 @@ namespace detail
 template<int current, int desired, typename T, typename... Ts>
 struct type_at_helper
 {
-	static_assert(desired <= sizeof...(Ts), "type_at: index is bigger than number of types in variadic pack");
+	static_assert(desired - current <= sizeof...(Ts), "type_at: index must be smaller than number of types in variadic pack");
 	using type = typename type_at_helper<current+1, desired, Ts...>::type;
 };
 
